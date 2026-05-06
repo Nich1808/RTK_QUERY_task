@@ -18,7 +18,6 @@ export default function UpdateProductPage({
 
   if (isLoading) return <p>Loading...</p>;
   if (error || !product) return <p>Product not found</p>;
-
   return <ProductForm product={product} />;
 }
 

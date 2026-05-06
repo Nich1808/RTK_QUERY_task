@@ -18,14 +18,6 @@ export default function ProductDetail({
 
   return (
     <section className="max-h-full flex justify-center items-center mt-20">
-      {/* <ProductCard
-        key={data?.id}
-        images={data?.images}
-        title={data?.title}
-        description={data?.description}
-        price={data?.price}
-        category={data?.category}
-      /> */}
       <h1>{data?.title}</h1>
     </section>
   );

@@ -2,7 +2,6 @@ import { increment } from "@/lip/features/counter/counterSlice"
 import { useAppDispatch, useAppSelector } from "@/lip/hooks"
 
 export function Card() {
-  // The `state` arg is correctly typed as `RootState` already
   const count = useAppSelector((state) => state.counter.value)
   const dispatch = useAppDispatch()
 
@@ -12,6 +11,4 @@ export function Card() {
       <button onClick={()=> dispatch(increment())}>Increase</button>
     </section>
   )
-
-  // omit rendering logic
 }

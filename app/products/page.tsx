@@ -23,7 +23,6 @@ export default function ProductList() {
           />
         </Link>
       ))}
-
       {isLoading ? <p>loading...</p> : <p>get prduct succes</p>}
     </main>
   );
