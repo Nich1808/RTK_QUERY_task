@@ -35,7 +35,7 @@ const data = {
   },
   teams: [
     {
-      name: "ISTAD SHOP",
+      name: "ISTAD",
       logo: <GalleryVerticalEndIcon />,
       plan: "Enterprise",
     },
@@ -66,8 +66,8 @@ const data = {
           url: "/dashboard/product",
         },
         {
-          title: "Add Product",
-          url: "/dashboard/addProduct",
+          title: "Insert Product",
+          url: "/dashboard/insertProduct",
         },
       ],
     },
@@ -157,6 +157,7 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>

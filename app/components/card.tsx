@@ -7,8 +7,10 @@ export function Card() {
 
   return(
     <section>
+
       <h2>{count}</h2>
       <button onClick={()=> dispatch(increment())}>Increase</button>
+      
     </section>
   )
 }

@@ -1,24 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const baseApi = process.env.NEXT_PUBLIC_API;
-export async function GET() {
+const API = process.env.NEXT_PUBLIC_API as string;
 
-  const res = await fetch(`${baseApi}/products`);
-  const data = await res.json();
-  return NextResponse.json(data);
-}
+// GET all products
+export const GET = async () => {
+  try {
+    const response = await fetch(`${API}/products`);
+    const products = await response.json();
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
+    return NextResponse.json(products);
+  } catch (error) {
+    return NextResponse.json(
+      { message: "Error fetching products" },
+      { status: 500 }
+    );
+  }
+};
 
-  const res = await fetch(`${baseApi}/products`, {
-    method: "POST",
-    headers: {
-      "Content-type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+// CREATE product
+export const POST = async (request: NextRequest) => {
+  try {
+    const payload = await request.json();
 
-  const data = await res.json();
-  return NextResponse.json(data);
-}
+    const response = await fetch(`${API}/products`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const createdProduct = await response.json();
+
+    return NextResponse.json(createdProduct);
+  } catch (error) {
+    return NextResponse.json(
+      { message: "Error creating product" },
+      { status: 500 }
+    );
+  }
+};

@@ -15,5 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 
 export default function Page() {
-  return <p>Dashboard</p>;
+
+  return <p>Dashboard Page</p>;
+  
 }

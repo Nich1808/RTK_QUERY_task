@@ -1,5 +1,6 @@
+import ProductlistClient from "@/components/product/product-list";
 
-import { ProductlistClient } from "@/components/product/product-list";
+
 
 export default function ProductPage() {
   return (

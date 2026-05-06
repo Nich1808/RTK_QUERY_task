@@ -2,7 +2,9 @@
 
 import { useGetProductsQuery } from "@/lip/features/product/prodcuctApi";
 import Link from "next/link";
-import ProductCard from "../component/productCard";
+import ProductCard from "../components/productCard";
+
+
 
 export default function ProductList() {
   const { data, isLoading } = useGetProductsQuery();

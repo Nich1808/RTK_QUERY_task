@@ -1,31 +1,32 @@
 "use client";
-import * as React from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
-import * as z from "zod";
 
-import { Button } from "@/components/ui/button";
+import * as React from "react";
+import * as z from "zod";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+
 import {
   Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Field,
-  FieldError,
   FieldGroup,
   FieldLabel,
+  FieldError,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   InputGroup,
   InputGroupAddon,
-  InputGroupText,
   InputGroupTextarea,
+  InputGroupText,
 } from "@/components/ui/input-group";
 import {
   Select,
@@ -35,177 +36,209 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { useAddProductsMutation, useUpdateProductMutation } from "@/lip/features/product/prodcuctApi";
+import {
+  useAddProductsMutation,
+  useUpdateProductMutation,
+} from "@/lip/features/product/prodcuctApi";
 import { useGetCategoriesQuery } from "@/lip/features/product/categoryApi";
-import UploadFile from "@/lip/features/product/imagApi";
-import ImageUpload, { ImageFile } from "./image-form";
+import uploadFile from "@/lip/features/product/imagApi";
+import ImageUpload, { ImageFile } from "./form-image";
 
-import { productRequst, productResponse } from "@/lip/types/productType";
+import {
+  productRequst,
+  productResponse,
+} from "@/lip/types/productType";
 
-const productSchema = z.object({
+const schema = z.object({
   title: z.string().min(5).max(32),
   description: z.string().min(10).max(100),
   price: z.coerce.number().positive(),
   categoryId: z.string().min(1),
-  images: z.array(
-    z.object({
-      id: z.string(),
-      file: z.instanceof(File).optional(),
-      preview: z.string(),
-    })
-  ).nonempty("Must provide at least one image"),
+  images: z
+    .array(
+      z.object({
+        id: z.string(),
+        file: z.instanceof(File).optional(),
+        preview: z.string(),
+      })
+    )
+    .min(1, "At least one image is required"),
 });
 
-type ProductFormProps = {
+type FormValues = z.infer<typeof schema>;
+
+type Props = {
   product?: productResponse;
 };
 
-export function ProductForm({ product }: ProductFormProps) {
-  const form = useForm<z.infer<typeof productSchema>>({
-    resolver: zodResolver(productSchema),
+const ProductForm = ({ product }: Props) => {
+  const { data: categoryList } = useGetCategoriesQuery();
+  const [createProduct, addState] = useAddProductsMutation();
+  const [editProduct, updateState] = useUpdateProductMutation();
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
     defaultValues: {
-      title: product?.title || "",
-      description: product?.description || "",
-      price: product?.price || 0,
-      categoryId: product?.category.id.toString() || "",
-      images: product?.images.map((url, index) => ({
-        id: `img-${index}`,
-        file: undefined,
-        preview: url,
-      })) || [],
+      title: product?.title ?? "",
+      description: product?.description ?? "",
+      price: product?.price ?? 0,
+      categoryId: product?.category?.id?.toString() ?? "",
+      images:
+        product?.images?.map((url, i) => ({
+          id: `img-${i}`,
+          preview: url,
+          file: undefined,
+        })) ?? [],
     },
   });
 
-  const { data: categories } = useGetCategoriesQuery();
-  const [addProduct, { isLoading: isAdding }] = useAddProductsMutation();
-  const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
+  const isLoading = addState.isLoading || updateState.isLoading;
 
-  const onSubmit = async (data: z.infer<typeof productSchema>) => {
+  const handleSubmit = async (values: FormValues) => {
     try {
-   
-      const imageUrls = await Promise.all(
-        data.images.map(async (img) => {
+      const uploadedImages = await Promise.all(
+        values.images.map(async (img) => {
           if (img.file) {
-            const formData = new FormData();
-            formData.append("file", img.file);
-            const res = await UploadFile(formData);
+            const fd = new FormData();
+            fd.append("file", img.file);
+            const res = await uploadFile(fd);
             return res.location;
           }
-          return img.preview; 
+          return img.preview;
         })
       );
 
       const payload: productRequst = {
-        title: data.title,
-        description: data.description,
-        price: Number(data.price),
-        categoryId: Number(data.categoryId),
-        images: imageUrls,
+        title: values.title,
+        description: values.description,
+        price: Number(values.price),
+        categoryId: Number(values.categoryId),
+        images: uploadedImages,
       };
 
       if (product) {
-      
-        await updateProduct({ id: product.id, data: payload }).unwrap();
-        toast.success("Product updated successfully!");
+        await editProduct({ id: product.id, data: payload }).unwrap();
+        toast.success("Updated successfully");
       } else {
-     
-        await addProduct(payload).unwrap();
-        toast.success("Product created successfully!");
+        await createProduct(payload).unwrap();
+        toast.success("Created successfully");
         form.reset();
       }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Something went wrong");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.message || "Error occurred");
     }
   };
 
   return (
     <Card className="w-full sm:max-w-md">
       <CardHeader>
-        <CardTitle>{product ? "Edit Product" : "Add Product"}</CardTitle>
-        {!product && <CardDescription>Fill out the details below to add a new product.</CardDescription>}
+        <CardTitle>
+          {product ? "Edit Product" : "Create Product"}
+        </CardTitle>
+        {!product && (
+          <CardDescription>
+            Enter product information below
+          </CardDescription>
+        )}
       </CardHeader>
 
       <CardContent>
-        <form id="product-form" onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} id="form-product">
           <FieldGroup>
-            {/* Title */}
-            <Controller
-              name="title"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="title">Title</FieldLabel>
-                  <Input {...field} id="title" placeholder="Product title" />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-
-            <Controller
-              name="price"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="price">Price</FieldLabel>
-                  <Input {...field} id="price" type="number" />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-
-   
-            <Controller
-              name="description"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor="description">Description</FieldLabel>
-                  <InputGroup>
-                    <InputGroupTextarea {...field} id="description" rows={5} />
-                    <InputGroupAddon align="block-end">
-                      <InputGroupText>{field.value.length}/100</InputGroupText>
-                    </InputGroupAddon>
-                  </InputGroup>
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-
         
             <Controller
-              name="categoryId"
               control={form.control}
+              name="title"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>Title</FieldLabel>
+                  <Input {...field} placeholder="Enter title" />
+                  {fieldState.error && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+           
+            <Controller
+              control={form.control}
+              name="price"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>Price</FieldLabel>
+                  <Input type="number" {...field} />
+                  {fieldState.error && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="description"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>Description</FieldLabel>
+                  <InputGroup>
+                    <InputGroupTextarea {...field} rows={4} />
+                    <InputGroupAddon align="block-end">
+                      <InputGroupText>
+                        {field.value.length}/100
+                      </InputGroupText>
+                    </InputGroupAddon>
+                  </InputGroup>
+                  {fieldState.error && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+
+            {/* category */}
+            <Controller
+              control={form.control}
+              name="categoryId"
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel>Category</FieldLabel>
-                  <Select value={field.value || ""} onValueChange={field.onChange}>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder="Choose category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories?.map((cate) => (
-                        <SelectItem key={cate.id} value={String(cate.id)}>
-                          {cate.name}
+                      {categoryList?.map((c) => (
+                        <SelectItem
+                          key={c.id}
+                          value={String(c.id)}
+                        >
+                          {c.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  {fieldState.error && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
                 </Field>
               )}
             />
 
- 
+            {/* images */}
             <Controller
-              name="images"
               control={form.control}
+              name="images"
               render={({ field }) => (
                 <Field>
                   <FieldLabel>Images</FieldLabel>
                   <ImageUpload
                     images={field.value}
-                    onImagesChange={(imgs) => field.onChange(imgs)}
+                    onImagesChange={field.onChange}
                   />
                 </Field>
               )}
@@ -215,16 +248,22 @@ export function ProductForm({ product }: ProductFormProps) {
       </CardContent>
 
       <CardFooter>
-        <Button type="submit" form="product-form" disabled={isAdding || isUpdating}>
-          {isAdding || isUpdating
+        <Button
+          form="form-product"
+          type="submit"
+          disabled={isLoading}
+        >
+          {isLoading
             ? product
               ? "Updating..."
-              : "Submitting..."
+              : "Creating..."
             : product
-            ? "Update Product"
-            : "Create Product"}
+            ? "Update"
+            : "Create"}
         </Button>
       </CardFooter>
     </Card>
   );
-}
+};
+
+export default ProductForm;

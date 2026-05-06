@@ -1,15 +1,24 @@
-// app/api/categories/route.ts
 import { NextResponse } from "next/server";
 
-const baseApi = process.env.NEXT_PUBLIC_API;
+const API_URL = process.env.NEXT_PUBLIC_API as string;
 
-export async function GET() {
+export const GET = async () => {
+  let result;
+
   try {
-    const res = await fetch(`${baseApi}/categories`);
-    if (!res.ok) throw new Error("Failed to fetch categories");
-    const data = await res.json();
-    return NextResponse.json(data);
-  } catch (err) {
-    return NextResponse.json({ message: "Failed to fetch categories" }, { status: 500 });
+    const response = await fetch(`${API_URL}/categories`);
+
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+
+    result = await response.json();
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Unable to retrieve categories" },
+      { status: 500 }
+    );
   }
-}
+
+  return NextResponse.json(result);
+};
